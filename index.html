@@ -20,12 +20,13 @@ button,input,textarea,select{touch-action:manipulation}
   --font-display:'Bebas Neue',sans-serif;--font-body:'DM Sans',sans-serif;
   --r:14px;--r-sm:8px;
 }
-html,body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;overflow-y:auto;touch-action:pan-y;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;}
 input,button{font-family:var(--font-body)}
 button{cursor:pointer}
 
-.view{display:none;min-height:100vh;padding-bottom:90px}
+.view{display:none;min-height:100vh;padding-bottom:90px;touch-action:pan-y}
 .view.active{display:block}
+.ex-list,.history-list,.pr-list,.sessions-list,.edit-section,.stats-grid,.ex-card,.workout-card,.session-item,.history-card{touch-action:pan-y}
 
 /* NAV */
 .bottom-nav{
