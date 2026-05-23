@@ -10,7 +10,7 @@
 <title>GAINZ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:pan-y pinch-zoom}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 button,input,textarea,select{touch-action:manipulation}
 :root{
   --bg:#080808;--s1:#111;--s2:#1a1a1a;--s3:#242424;
@@ -1415,6 +1415,23 @@ function fmtDur(sec){const m=Math.floor(sec/60);return m<60?`${m} min`:`${Math.f
 // ══════════════════════════════════════
 updateNotifBanner();
 renderEditList();
+
+// ── TOUCH SCROLL FIX ──
+// Empêche les éléments cliquables de bloquer le scroll sur Android
+let touchStartY = 0;
+let touchMoved = false;
+document.addEventListener('touchstart', e => {
+  touchStartY = e.touches[0].clientY;
+  touchMoved = false;
+}, {passive: true});
+document.addEventListener('touchmove', e => {
+  if (Math.abs(e.touches[0].clientY - touchStartY) > 8) touchMoved = true;
+}, {passive: true});
+// Annule le click si l'utilisateur scrollait
+document.querySelectorAll('.ex-card .ex-head, .workout-card, .session-item, .history-card').forEach(el => {
+  el.addEventListener('touchend', e => { if (touchMoved) e.preventDefault(); }, {passive: false});
+});
+
 // Start on auth view, hide nav until logged in
 document.querySelector('.bottom-nav').style.display = 'none';
 document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
