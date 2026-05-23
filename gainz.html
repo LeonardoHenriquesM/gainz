@@ -214,6 +214,30 @@ button{cursor:pointer}
 .chart-bar-label{font-size:10px;color:var(--muted);text-align:center;white-space:nowrap}
 .chart-bar-val{font-family:var(--font-display);font-size:12px;color:var(--acc)}
 
+/* EDIT */
+.edit-section{padding:0 20px;margin-bottom:24px}
+.edit-workout-picker{display:flex;gap:8px;margin-bottom:16px}
+.edit-picker-btn{flex:1;padding:10px 0;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--s1);color:var(--muted);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;transition:all 0.15s}
+.edit-picker-btn.active{background:var(--acc);color:#000;border-color:var(--acc)}
+.edit-ex-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.edit-ex-head{padding:14px 16px;display:flex;align-items:center;gap:10px}
+.edit-ex-num{width:28px;height:28px;border-radius:6px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;color:var(--muted);flex-shrink:0}
+.edit-name-inp{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:500;padding:8px 10px;outline:none;transition:border-color 0.15s}
+.edit-name-inp:focus{border-color:var(--acc)}
+.edit-ex-body{padding:0 16px 14px}
+.edit-sets-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.edit-set-row{display:flex;align-items:center;gap:8px;background:var(--s2);border-radius:6px;padding:8px 10px}
+.edit-set-label{font-size:13px;color:var(--muted);min-width:32px}
+.edit-set-reps{flex:1;background:var(--s3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;padding:4px 8px;outline:none;text-align:center}
+.edit-set-reps:focus{border-color:var(--acc)}
+.edit-set-rest{width:60px;background:var(--s3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;padding:4px 8px;outline:none;text-align:center}
+.edit-set-rest:focus{border-color:var(--acc)}
+.edit-set-del{width:28px;height:28px;border-radius:4px;border:none;background:rgba(255,82,82,0.12);color:var(--red);font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.edit-add-set{width:100%;padding:8px;border-radius:var(--r-sm);border:1px dashed var(--border);background:none;color:var(--muted);font-size:13px;font-weight:500}
+.edit-add-set:active{border-color:var(--acc);color:var(--acc)}
+.edit-save-btn{width:100%;padding:16px;background:var(--acc);color:#000;border:none;border-radius:var(--r);font-family:var(--font-display);font-size:22px;letter-spacing:1px;margin-top:8px}
+.edit-hint{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px;line-height:1.6}
+
 /* CONGRATS */
 .congrats{display:none;position:fixed;inset:0;background:var(--bg);z-index:900;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
 .congrats.show{display:flex}
@@ -341,11 +365,31 @@ button{cursor:pointer}
   <div style="height:8px"></div>
 </div>
 
+<!-- EDIT -->
+<div class="view" id="view_edit">
+  <div class="page-header">
+    <div class="page-title">ÉDIT<span class="acc">.</span></div>
+    <div class="page-subtitle">Personnalise tes séances</div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="edit-section">
+    <div class="edit-workout-picker">
+      <button class="edit-picker-btn active" onclick="switchEditType('push',this)">PUSH</button>
+      <button class="edit-picker-btn" onclick="switchEditType('pull',this)">PULL</button>
+      <button class="edit-picker-btn" onclick="switchEditType('legs',this)">LEGS</button>
+    </div>
+    <div class="edit-hint">Renomme les exercices, ajuste les séries.<br>Les reps et le repos sont modifiables par série.</div>
+    <div id="editExList"></div>
+    <button class="edit-save-btn" onclick="saveEdits()">✓ ENREGISTRER</button>
+  </div>
+</div>
+
 <!-- NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn active" id="nav_home" onclick="showView('home',this)"><span class="nav-icon">🏠</span>Accueil</button>
   <button class="nav-btn" id="nav_history" onclick="showView('history',this)"><span class="nav-icon">📋</span>Historique</button>
   <button class="nav-btn" id="nav_stats" onclick="showView('stats',this)"><span class="nav-icon">📈</span>Stats</button>
+  <button class="nav-btn" id="nav_edit" onclick="showView('edit',this)"><span class="nav-icon">✏️</span>Éditer</button>
 </nav>
 
 <script>
@@ -601,6 +645,7 @@ function showView(name,btn){
   if(name==='home') renderHome();
   if(name==='history') renderHistory();
   if(name==='stats') renderStats();
+  if(name==='edit') renderEditList();
 }
 
 // ══════════════════════════════════════
@@ -917,6 +962,111 @@ function addRest(sec){
 }
 
 // ══════════════════════════════════════
+// EDIT
+// ══════════════════════════════════════
+let editType = 'push';
+// customWorkouts stored in localStorage, overrides WORKOUTS
+let customWorkouts = load('gainz_v2_custom', null);
+if (customWorkouts) {
+  // Merge custom names/sets into WORKOUTS
+  Object.keys(customWorkouts).forEach(type => {
+    if (WORKOUTS[type]) {
+      customWorkouts[type].exercises.forEach((cex, ei) => {
+        if (WORKOUTS[type].exercises[ei]) {
+          WORKOUTS[type].exercises[ei].name = cex.name;
+          WORKOUTS[type].exercises[ei].sets = cex.sets;
+        }
+      });
+    }
+  });
+}
+
+function switchEditType(type, btn) {
+  editType = type;
+  document.querySelectorAll('.edit-picker-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEditList();
+}
+
+function renderEditList() {
+  const exs = WORKOUTS[editType].exercises;
+  const container = document.getElementById('editExList');
+  container.innerHTML = exs.map((ex, ei) => `
+    <div class="edit-ex-card">
+      <div class="edit-ex-head">
+        <div class="edit-ex-num">${ei+1}</div>
+        <input class="edit-name-inp" id="ename-${editType}-${ei}"
+          value="${ex.name}" placeholder="Nom de l'exercice">
+      </div>
+      <div class="edit-ex-body">
+        <div class="edit-sets-list" id="esets-${editType}-${ei}">
+          ${ex.sets.map((set, si) => editSetRow(editType, ei, si, set)).join('')}
+        </div>
+        <button class="edit-add-set" onclick="addEditSet('${editType}',${ei})">+ Ajouter une série</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editSetRow(type, ei, si, set) {
+  const restMin = Math.floor(set.rest / 60);
+  const restSec = set.rest % 60;
+  const restDisplay = restMin > 0 ? `${restMin}m${restSec > 0 ? restSec + 's' : ''}` : `${set.rest}s`;
+  return `<div class="edit-set-row" id="erow-${type}-${ei}-${si}">
+    <div class="edit-set-label">${set.label}</div>
+    <input class="edit-set-reps" id="ereps-${type}-${ei}-${si}"
+      value="${set.reps}" placeholder="reps">
+    <input class="edit-set-rest" id="erest-${type}-${ei}-${si}"
+      type="number" value="${set.rest}" placeholder="sec" title="Repos en secondes">
+    <button class="edit-set-del" onclick="delEditSet('${type}',${ei},${si})">×</button>
+  </div>`;
+}
+
+function addEditSet(type, ei) {
+  const ex = WORKOUTS[type].exercises[ei];
+  const si = ex.sets.length;
+  const lastSet = ex.sets[si - 1] || {reps:'8-10', rest:120};
+  ex.sets.push({label:`S${si}`, reps:lastSet.reps, dw:null, rest:lastSet.rest});
+  renderEditList();
+}
+
+function delEditSet(type, ei, si) {
+  if (WORKOUTS[type].exercises[ei].sets.length <= 1) { alert('Minimum 1 série.'); return; }
+  WORKOUTS[type].exercises[ei].sets.splice(si, 1);
+  // Relabel
+  WORKOUTS[type].exercises[ei].sets.forEach((s, i) => {
+    if (s.label !== 'Éch.') s.label = `S${i}`;
+  });
+  renderEditList();
+}
+
+function saveEdits() {
+  // Read all name inputs and reps/rest inputs back into WORKOUTS
+  Object.keys(WORKOUTS).forEach(type => {
+    WORKOUTS[type].exercises.forEach((ex, ei) => {
+      const nameEl = document.getElementById(`ename-${type}-${ei}`);
+      if (nameEl) ex.name = nameEl.value.trim() || ex.name;
+      ex.sets.forEach((set, si) => {
+        const repsEl = document.getElementById(`ereps-${type}-${ei}-${si}`);
+        const restEl = document.getElementById(`erest-${type}-${ei}-${si}`);
+        if (repsEl) set.reps = repsEl.value.trim();
+        if (restEl) set.rest = parseInt(restEl.value) || set.rest;
+      });
+    });
+  });
+  // Persist
+  const toSave = {};
+  Object.keys(WORKOUTS).forEach(type => {
+    toSave[type] = { exercises: WORKOUTS[type].exercises.map(ex => ({ name: ex.name, sets: ex.sets })) };
+  });
+  save('gainz_v2_custom', toSave);
+  // Feedback
+  const btn = document.querySelector('.edit-save-btn');
+  btn.textContent = '✓ ENREGISTRÉ !';
+  setTimeout(() => { btn.textContent = '✓ ENREGISTRER'; }, 2000);
+}
+
+// ══════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════
 function fmtTime(sec){const m=Math.floor(sec/60),s=sec%60;return `${m}:${String(s).padStart(2,'0')}`;}
@@ -927,6 +1077,7 @@ function fmtDur(sec){const m=Math.floor(sec/60);return m<60?`${m} min`:`${Math.f
 // ══════════════════════════════════════
 updateNotifBanner();
 renderHome();
+renderEditList();
 </script>
 </body>
 </html>
